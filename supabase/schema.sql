@@ -11,6 +11,8 @@ create table if not exists public.leads (
   phone       text        not null,
   company     text,
   requirement text        not null,
+  category    text,
+  priority    text,
   created_at  timestamptz not null default now()
 );
 

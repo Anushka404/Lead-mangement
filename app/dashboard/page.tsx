@@ -10,6 +10,8 @@ type LeadRow = {
   email: string;
   phone: string;
   company: string | null;
+  category: string | null;
+  priority: string | null;
   created_at: string;
   opened: boolean;
   clicked: boolean;
@@ -32,7 +34,7 @@ async function getData(): Promise<Data> {
   const [leadsRes, emailsRes, clicksRes] = await Promise.all([
     supabase
       .from("leads")
-      .select("id, full_name, email, phone, company, created_at")
+      .select("id, full_name, email, phone, company, category, priority, created_at")
       .order("created_at", { ascending: false })
       .limit(200),
     supabase.from("emails").select("id, lead_id, opened_at"),
@@ -69,6 +71,34 @@ async function getData(): Promise<Data> {
 function rate(part: number, whole: number): string {
   if (whole === 0) return "0%";
   return `${Math.round((part / whole) * 100)}%`;
+}
+
+const priorityStyles: Record<string, string> = {
+  High: "bg-rose-500/10 text-rose-400 ring-rose-500/30",
+  Medium: "bg-amber-500/10 text-amber-400 ring-amber-500/30",
+  Low: "bg-slate-500/10 text-slate-400 ring-slate-600",
+};
+
+function PriorityPill({ value }: { value: string | null }) {
+  if (!value)
+    return <span className="text-slate-600">—</span>;
+  const cls = priorityStyles[value] ?? priorityStyles.Low;
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${cls}`}
+    >
+      {value}
+    </span>
+  );
+}
+
+function CategoryPill({ value }: { value: string | null }) {
+  if (!value) return <span className="text-slate-600">—</span>;
+  return (
+    <span className="inline-flex rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300 ring-1 ring-indigo-500/30">
+      {value}
+    </span>
+  );
 }
 
 function StatusPill({ on, label }: { on: boolean; label: string }) {
@@ -160,6 +190,8 @@ export default async function Dashboard() {
                     <th className="px-6 py-3 font-medium">Email</th>
                     <th className="px-6 py-3 font-medium">Phone</th>
                     <th className="px-6 py-3 font-medium">Company</th>
+                    <th className="px-6 py-3 font-medium">Category</th>
+                    <th className="px-6 py-3 font-medium">Priority</th>
                     <th className="px-6 py-3 font-medium">Opened</th>
                     <th className="px-6 py-3 font-medium">Clicked</th>
                   </tr>
@@ -181,6 +213,12 @@ export default async function Dashboard() {
                         {l.company || (
                           <span className="text-slate-600">—</span>
                         )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <CategoryPill value={l.category} />
+                      </td>
+                      <td className="px-6 py-4">
+                        <PriorityPill value={l.priority} />
                       </td>
                       <td className="px-6 py-4">
                         <StatusPill on={l.opened} label="Opened" />

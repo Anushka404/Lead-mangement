@@ -12,6 +12,7 @@ open/click engagement on an analytics dashboard.
 | Styling   | Tailwind CSS |
 | Database  | Supabase (Postgres) |
 | Email     | Gmail SMTP (Nodemailer) |
+| AI        | Groq (Llama 3.3, free tier) |
 | Hosting   | Vercel (build is hosting-agnostic) |
 
 ## Architecture
@@ -101,3 +102,17 @@ supabase/schema.sql         tables + RLS + indexes
 
 Total Leads · Emails Sent · Emails Opened · Open Rate (opened ÷ sent) · Links
 Clicked (distinct emails with ≥1 click) · Click Rate (clicked ÷ sent).
+
+The **Lead Records** table lists each lead with open/click status and the
+AI-assigned category + priority.
+
+## AI Lead Classification (bonus)
+
+After a lead is saved, [`lib/classify.ts`](lib/classify.ts) calls Groq
+(`llama-3.3-70b-versatile`, free tier) in JSON mode to tag the requirement with
+a **category** (Sales / Support / Partnership / Hiring / Other) and a
+**priority** (High / Medium / Low); the response is validated with a Zod schema,
+stored on the lead, and shown in the dashboard. Best-effort: if `GROQ_API_KEY`
+is unset or the call fails, the lead still saves without tags. New `leads`
+columns: run [`supabase/add-ai-columns.sql`](supabase/add-ai-columns.sql) if
+your table predates this feature.

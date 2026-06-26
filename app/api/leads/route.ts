@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { sendLeadEmail } from "@/lib/email";
+import { classifyRequirement } from "@/lib/classify";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -81,6 +82,18 @@ export async function POST(req: Request) {
   });
   if (sendResult.error) {
     console.error("[leads] email send failed:", sendResult.error);
+  }
+
+  // AI classification — best-effort, never fails the request.
+  const classification = await classifyRequirement(requirement);
+  if (classification) {
+    await supabase
+      .from("leads")
+      .update({
+        category: classification.category,
+        priority: classification.priority,
+      })
+      .eq("id", lead.id);
   }
 
   return NextResponse.json({ ok: true, leadId: lead.id });
