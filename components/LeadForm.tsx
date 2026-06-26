@@ -61,11 +61,14 @@ export default function LeadForm() {
 
   if (status === "success") {
     return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center">
-        <p className="text-lg font-medium text-green-800">{message}</p>
+      <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20 text-2xl text-emerald-400">
+          ✓
+        </div>
+        <p className="text-lg font-medium text-emerald-300">{message}</p>
         <button
           onClick={() => setStatus("idle")}
-          className="mt-4 text-sm text-green-700 underline"
+          className="mt-4 text-sm text-emerald-400 underline transition hover:text-emerald-300"
         >
           Submit another
         </button>
@@ -74,12 +77,12 @@ export default function LeadForm() {
   }
 
   const inputCls =
-    "w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900";
+    "w-full rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2.5 text-slate-100 placeholder-slate-500 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30";
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1.5 block text-sm font-medium text-slate-300">
           Full Name
         </label>
         <input
@@ -91,7 +94,7 @@ export default function LeadForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1.5 block text-sm font-medium text-slate-300">
           Email
         </label>
         <input
@@ -104,7 +107,7 @@ export default function LeadForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1.5 block text-sm font-medium text-slate-300">
           Phone
         </label>
         <input
@@ -116,8 +119,8 @@ export default function LeadForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Company <span className="text-gray-400">(optional)</span>
+        <label className="mb-1.5 block text-sm font-medium text-slate-300">
+          Company <span className="text-slate-500">(optional)</span>
         </label>
         <input
           className={inputCls}
@@ -128,7 +131,7 @@ export default function LeadForm() {
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">
+        <label className="mb-1.5 block text-sm font-medium text-slate-300">
           Requirement
         </label>
         <textarea
@@ -140,13 +143,15 @@ export default function LeadForm() {
       </div>
 
       {status === "error" && (
-        <p className="text-sm text-red-600">{message}</p>
+        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+          {message}
+        </p>
       )}
 
       <button
         type="submit"
         disabled={status === "submitting"}
-        className="w-full rounded-md bg-gray-900 px-4 py-2.5 font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+        className="w-full rounded-lg bg-gradient-to-r from-indigo-500 to-cyan-500 px-4 py-2.5 font-semibold text-white shadow-lg shadow-indigo-950/50 transition hover:from-indigo-400 hover:to-cyan-400 disabled:opacity-60"
       >
         {status === "submitting" ? "Submitting…" : "Submit"}
       </button>
