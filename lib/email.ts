@@ -43,7 +43,7 @@ export function buildLeadEmailHtml({
       </a>
     </p>
     <p>Regards,<br/>Team</p>
-    <img src="${pixelUrl}" width="1" height="1" alt="" style="display:none" />
+    <img src="${pixelUrl}" width="1" height="1" alt="" style="width:1px;height:1px;border:0;opacity:0" />
   </body>
 </html>`;
 }
