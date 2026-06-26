@@ -1,4 +1,4 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
 type LeadEmailInput = {
   name: string;
@@ -51,8 +51,9 @@ export function buildLeadEmailHtml({
 type SendResult = { mocked: boolean; error?: string };
 
 /**
- * Sends the lead email via Resend. When RESEND_API_KEY is unset the HTML is
- * logged to the server console instead (local dev without credentials).
+ * Sends the lead email via Gmail SMTP (Nodemailer). Sends to any recipient.
+ * When GMAIL_USER / GMAIL_APP_PASSWORD are unset the HTML is logged to the
+ * server console instead (local dev without credentials).
  * Never throws — send failures are returned, the caller decides what to do.
  */
 export async function sendLeadEmail(
@@ -60,10 +61,12 @@ export async function sendLeadEmail(
   input: LeadEmailInput,
 ): Promise<SendResult> {
   const html = buildLeadEmailHtml(input);
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM || "onboarding@resend.dev";
+  const user = process.env.GMAIL_USER;
+  // App Passwords are shown with spaces — strip them before use.
+  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, "");
+  const fromName = process.env.EMAIL_FROM_NAME || "Team";
 
-  if (!apiKey) {
+  if (!user || !pass) {
     console.log(
       `[email:mock] would send to ${to} (tracking ${input.trackingId})\n${html}`,
     );
@@ -71,14 +74,16 @@ export async function sendLeadEmail(
   }
 
   try {
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from,
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass },
+    });
+    await transporter.sendMail({
+      from: `"${fromName}" <${user}>`,
       to,
       subject: "Thanks for reaching out",
       html,
     });
-    if (error) return { mocked: false, error: error.message };
     return { mocked: false };
   } catch (err) {
     return { mocked: false, error: (err as Error).message };

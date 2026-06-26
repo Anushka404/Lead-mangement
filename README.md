@@ -11,7 +11,7 @@ open/click engagement on an analytics dashboard.
 | Framework | Next.js (App Router) + React + TypeScript |
 | Styling   | Tailwind CSS |
 | Database  | Supabase (Postgres) |
-| Email     | Resend |
+| Email     | Gmail SMTP (Nodemailer) |
 | Hosting   | Vercel (build is hosting-agnostic) |
 
 ## Architecture
@@ -81,8 +81,9 @@ supabase/schema.sql         tables + RLS + indexes
 2. **Env:** `cp .env.local.example .env.local` and fill in:
    - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
      `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API)
-   - `RESEND_API_KEY` (optional — without it, emails are logged to the console
-     instead of sent), `EMAIL_FROM`
+   - `GMAIL_USER` + `GMAIL_APP_PASSWORD` (optional — without them, emails are
+     logged to the console instead of sent). App Password: Google account →
+     enable 2FA → Security → App passwords. Sends to any recipient.
    - `NEXT_PUBLIC_BASE_URL` (e.g. `http://localhost:3000`)
    - `CTA_TARGET_URL` (where the "Learn more" button redirects)
 3. **Run:**
