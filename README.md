@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lead Management & Email Tracking System
 
-## Getting Started
+A lead-capture form that stores submissions in Supabase, auto-sends a
+personalized email with a trackable link + open pixel, and surfaces
+open/click engagement on an analytics dashboard.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Layer    | Choice |
+|----------|--------|
+| Framework | Next.js (App Router) + React + TypeScript |
+| Styling   | Tailwind CSS |
+| Database  | Supabase (Postgres) |
+| Email     | Resend |
+| Hosting   | Vercel (build is hosting-agnostic) |
+
+## Architecture
+
+```
+ Browser form (/)                 Email client
+       │ POST /api/leads              │  opens email → loads pixel
+       ▼                              ▼
+ ┌──────────────┐   insert    ┌──────────────────┐
+ │ /api/leads   │────────────▶│ Supabase         │
+ │  - validate  │  leads,     │  leads / emails  │
+ │  - send mail │  emails     │  clicks          │
+ └──────┬───────┘             └────────▲─────────┘
+        │ Resend                        │ update opened_at / open_count
+        ▼                               │ insert clicks
+   personalized email          ┌────────┴─────────┐
+   - open pixel  ──────────────▶│ /api/track/open │ (1x1 gif)
+   - CTA link    ──────────────▶│ /api/track/click│ (302 redirect)
+                                └──────────────────┘
+                                         ▲
+                                /dashboard reads aggregates
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+All database writes happen in server routes using the Supabase
+**service-role key**. RLS is enabled on every table with no public policies,
+so the anon key can read/write nothing.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How Tracking Works
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Every sent email gets a row in `emails` with an opaque `tracking_id` (uuid).
+That id — never a raw database id — is the only identifier in public URLs.
 
-## Learn More
+- **Opens:** the email embeds `<img src="…/api/track/open?tid=…">`. When the
+  client loads images, the route sets `opened_at` (first open only) and
+  increments `open_count`, then returns a 1×1 transparent GIF with no-cache
+  headers.
+- **Clicks:** the CTA points at `…/api/track/click?tid=…&url=<encoded target>`.
+  The route logs a `clicks` row and `302`-redirects to the target. The target
+  is **allowlisted** to the `CTA_TARGET_URL` host to prevent open-redirect abuse.
 
-To learn more about Next.js, take a look at the following resources:
+**Limitation:** pixel-based open tracking is approximate. Clients that block
+images under-count opens; proxies/prefetchers (e.g. Apple Mail Privacy
+Protection) can over-count. Click tracking is reliable.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+  page.tsx                  Lead capture form
+  dashboard/page.tsx        Analytics dashboard (server component)
+  api/leads/route.ts        POST: validate, insert lead + email row, send mail
+  api/track/open/route.ts   GET: log open, return 1x1 gif
+  api/track/click/route.ts  GET: log click, allowlist-checked 302 redirect
+lib/
+  supabase.ts               server service-role client factory
+  email.ts                  HTML template + Resend send (guarded)
+components/
+  LeadForm.tsx              client form + validation
+  StatCard.tsx              dashboard stat tile
+supabase/schema.sql         tables + RLS + indexes
+```
 
-## Deploy on Vercel
+## Local Setup
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Supabase:** create a project, open the SQL editor, paste & run
+   [`supabase/schema.sql`](supabase/schema.sql).
+2. **Env:** `cp .env.local.example .env.local` and fill in:
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+     `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API)
+   - `RESEND_API_KEY` (optional — without it, emails are logged to the console
+     instead of sent), `EMAIL_FROM`
+   - `NEXT_PUBLIC_BASE_URL` (e.g. `http://localhost:3000`)
+   - `CTA_TARGET_URL` (where the "Learn more" button redirects)
+3. **Run:**
+   ```bash
+   npm install
+   npm run dev
+   ```
+   Form at `/`, dashboard at `/dashboard`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> Without credentials the app still builds and runs: DB-backed routes return a
+> clear "not configured" response and the dashboard shows zeros, so you can
+> develop the UI before wiring services.
+
+## Dashboard Metrics
+
+Total Leads · Emails Sent · Emails Opened · Open Rate (opened ÷ sent) · Links
+Clicked (distinct emails with ≥1 click) · Click Rate (clicked ÷ sent).
